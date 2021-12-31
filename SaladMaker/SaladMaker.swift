@@ -10,13 +10,16 @@ import Foundation
 class SaladMaker {
     func make(onIngrdientPrepped: @escaping (Ingredient) -> ()) {
         Task(priority: .userInitiated) {
-            async let lettuce = prepareIngredient(.lettuce)
-            async let tomatoes = prepareIngredient(.tomatoes)
-            async let redOnion = prepareIngredient(.redOnion)
-            async let sweetcorn = prepareIngredient(.sweetcorn)
-            async let tuna = prepareIngredient(.tuna)
-            let ingredients = await [lettuce, tomatoes, redOnion, sweetcorn, tuna]
-            ingredients.forEach(onIngrdientPrepped)
+            await withTaskGroup(of: Ingredient.self, body: { group in
+                for ingredient in Ingredient.allCases {
+                    group.addTask(priority: .userInitiated) {
+                       await self.prepareIngredient(ingredient)
+                    }
+                }
+                for await ingredientPrepped in group {
+                    onIngrdientPrepped(ingredientPrepped)
+                }
+            })
         }
     }
 

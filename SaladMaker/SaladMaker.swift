@@ -9,14 +9,22 @@ import Foundation
 
 class SaladMaker {
     func make(onIngrdientPrepped: @escaping (Ingredient) -> ()) {
-        Ingredient.allCases.forEach { (ingredient) in
-            self.prepareIngredient(ingredient)
-            onIngrdientPrepped(ingredient)
+        Task(priority: .userInitiated) {
+            for ingredient in Ingredient.allCases {
+                await prepareIngredient(ingredient)
+                onIngrdientPrepped(ingredient)
+            }
         }
     }
-    
-    private func prepareIngredient(_ ingredient: Ingredient) {
-        let randomTime = UInt32.random(in: 1...5)
-        sleep(randomTime) // chop, cut, etc...
+
+    private func prepareIngredient(_ ingredient: Ingredient) async {
+        return await withCheckedContinuation({ continuation in
+            // using DispatchQueue here instead of Task due to unexpected behaviour
+            DispatchQueue.global(qos: .userInitiated).async {
+                let randomTime = UInt32.random(in: 1...5)
+                sleep(randomTime)
+                continuation.resume()
+            }
+        })
     }
 }
